@@ -181,19 +181,20 @@
 // ================================================================
 // SEADISTA: asenda see oma Google Apps Script deployment URL-iga
 // ================================================================
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwTa8foG76TT2t0VpocLddyRGOdoIkoYXeUqzrswkaLyDEyv4r2NtYVqxErbW1NK3GN/exec';
+const SCRIPT_URL = 'ASENDA_SIIA_OMA_APPS_SCRIPT_URL';
 
 // ================================================================
-// Rabad — peavad kattuma Apps Script'i SITES massiiviga
+// Rabad ja nende väljakud
 // ================================================================
-const SITES = [
-  'Prääma,
-  'Retla',
-  'Viisu',
-  'Salla',
-  'Peetla',
-  'Simuna',
-];
+const SITES_DATA = {
+  'Prääma':  ['I','II','III','IV'],
+  'Retla':   ['I','II','III','IV','V','VI','VII','VIII','IX','X'],
+  'Viisu':   ['I','II','III','IV','V','VI','VII'],
+  'Salla':   ['I','II','III','IV','V','VI','VII'],
+  'Peetla':  ['I','II','III','IV','V'],
+  'Simuna':  ['I','II'],
+};
+const SITES = Object.keys(SITES_DATA);
 
 let pin = '';
 let currentUser = '';
@@ -272,9 +273,10 @@ function buildSiteGrid() {
     b.onclick = () => {
       currentSite = s;
       selections = {};
-      document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
       document.getElementById('poldude-arv').value = '';
       document.getElementById('form-title').textContent = s;
+      buildValjak(s);
+      document.querySelectorAll('#opt-punkri .chip, #opt-jaljed .chip').forEach(c => c.classList.remove('selected'));
       goTo('form');
     };
     g.appendChild(b);
@@ -282,6 +284,19 @@ function buildSiteGrid() {
 }
 
 // ---- FORM ----
+function buildValjak(site) {
+  const container = document.getElementById('opt-valjak');
+  container.innerHTML = '';
+  (SITES_DATA[site] || []).forEach(v => {
+    const el = document.createElement('div');
+    el.className = 'chip';
+    el.textContent = v;
+    el.onclick = () => pick(el, 'valjak');
+    container.appendChild(el);
+  });
+  selections.valjak = '';
+}
+
 function pick(el, group) {
   document.querySelectorAll('#opt-' + group + ' .chip').forEach(c => c.classList.remove('selected'));
   el.classList.add('selected');
