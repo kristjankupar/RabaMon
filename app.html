@@ -142,19 +142,28 @@
   </div>
 
   <div class="section-label" style="margin-top:1.5rem;">Põldude arv</div>
-  <input class="num-input" type="number" id="poldude-arv" placeholder="Sisesta arv..." min="1" max="999" inputmode="numeric">
+  <input class="num-input" type="number" id="poldude-arv" placeholder="Sisesta arv..." min="1" max="999" inputmode="numeric" oninput="updateKogus()">
 
   <div class="section-label" style="margin-top:1.5rem;">Punkri täituvus</div>
   <div class="chip-row" id="opt-punkri">
-    <div class="chip" onclick="pick(this,'punkri')">6 m³</div>
-    <div class="chip" onclick="pick(this,'punkri')">8 m³</div>
-    <div class="chip" onclick="pick(this,'punkri')">10 m³</div>
+    <div class="chip" onclick="pick(this,'punkri');updateKogus()">4 m³</div>
+    <div class="chip" onclick="pick(this,'punkri');updateKogus()">6 m³</div>
+    <div class="chip" onclick="pick(this,'punkri');updateKogus()">8 m³</div>
   </div>
 
   <div class="section-label" style="margin-top:1.5rem;">Jälgede arv</div>
   <div class="chip-row" id="opt-jaljed">
-    <div class="chip" onclick="pick(this,'jaljed')">4</div>
-    <div class="chip" onclick="pick(this,'jaljed')">5</div>
+    <div class="chip" onclick="pick(this,'jaljed');updateKogus()">4</div>
+    <div class="chip" onclick="pick(this,'jaljed');updateKogus()">5</div>
+  </div>
+
+  <div id="kogus-box" style="display:none; margin-top:1.75rem; background:#EAF3DE; border:1px solid #2C5F2E; border-radius:14px; padding:1rem 1.25rem;">
+    <div style="font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.6px; color:#3B6D11; margin-bottom:6px;">Arvele võetav kogus</div>
+    <div style="display:flex; align-items:baseline; gap:6px;">
+      <span id="kogus-arv" style="font-size:32px; font-weight:700; color:#2C5F2E;">—</span>
+      <span style="font-size:16px; color:#3B6D11; font-weight:500;">m³</span>
+    </div>
+    <div id="kogus-valem" style="font-size:12px; color:#5a8a3a; margin-top:4px;"></div>
   </div>
 
   <button class="send-btn" id="send-btn" onclick="sendData()">Saada</button>
@@ -184,7 +193,7 @@
 // ================================================================
 // SEADISTA: asenda see oma Google Apps Script deployment URL-iga
 // ================================================================
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwTa8foG76TT2t0VpocLddyRGOdoIkoYXeUqzrswkaLyDEyv4r2NtYVqxErbW1NK3GN/exec';
+const SCRIPT_URL = 'ASENDA_SIIA_OMA_APPS_SCRIPT_URL';
 
 // ================================================================
 // Rabad ja nende väljakud
@@ -278,6 +287,7 @@ function buildSiteGrid() {
       currentSite = s;
       selections = {};
       document.getElementById('poldude-arv').value = '';
+      document.getElementById('kogus-box').style.display = 'none';
       document.getElementById('form-title').textContent = s;
       buildValjak(s);
       document.querySelectorAll('#opt-punkri .chip, #opt-jaljed .chip').forEach(c => c.classList.remove('selected'));
@@ -312,6 +322,21 @@ function pick(el, group) {
   selections[group] = el.textContent.trim();
 }
 
+function updateKogus() {
+  const poldud = parseFloat(document.getElementById('poldude-arv').value);
+  const punkri = selections.punkri ? parseInt(selections.punkri) : null;
+  const jaljed = selections.jaljed ? parseInt(selections.jaljed) : null;
+
+  if (poldud && punkri && jaljed) {
+    const kogus = poldud * jaljed * punkri;
+    document.getElementById('kogus-arv').textContent = kogus;
+    document.getElementById('kogus-valem').textContent = `${poldud} põldu × ${jaljed} jälge × ${punkri} m³`;
+    document.getElementById('kogus-box').style.display = 'block';
+  } else {
+    document.getElementById('kogus-box').style.display = 'none';
+  }
+}
+
 async function sendData() {
   const poldudArv = document.getElementById('poldude-arv').value.trim();
   const kuupaevVal = document.getElementById('kuupaev').value;
@@ -332,9 +357,10 @@ async function sendData() {
     kasutaja: currentUser,
     kuupaev: kuupaevFormatted,
     valjak: selections.valjak,
-    poldude_arv: poldudArv,
-    punkri_taituvus: selections.punkri,
-    jalgede_arv: selections.jaljed,
+    poldude_arv: parseFloat(poldudArv),
+    punkri_taituvus: parseInt(selections.punkri),
+    jalgede_arv: parseInt(selections.jaljed),
+    kogus: parseFloat(poldudArv) * parseInt(selections.jaljed) * parseInt(selections.punkri),
   };
 
   try {
