@@ -130,7 +130,10 @@
     <h2 id="form-title">Andmed</h2>
   </div>
 
-  <div class="section-label">Väljak</div>
+  <div class="section-label">Kuupäev</div>
+  <input class="num-input" type="date" id="kuupaev" style="font-size:15px;">
+
+  <div class="section-label" style="margin-top:1.5rem;">Väljak</div>
   <div class="chip-row" id="opt-valjak">
     <div class="chip" onclick="pick(this,'valjak')">I</div>
     <div class="chip" onclick="pick(this,'valjak')">II</div>
@@ -181,7 +184,7 @@
 // ================================================================
 // SEADISTA: asenda see oma Google Apps Script deployment URL-iga
 // ================================================================
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwTa8foG76TT2t0VpocLddyRGOdoIkoYXeUqzrswkaLyDEyv4r2NtYVqxErbW1NK3GN/exec';
+const SCRIPT_URL = 'ASENDA_SIIA_OMA_APPS_SCRIPT_URL';
 
 // ================================================================
 // Rabad ja nende väljakud
@@ -278,6 +281,11 @@ function buildSiteGrid() {
       document.getElementById('form-title').textContent = s;
       buildValjak(s);
       document.querySelectorAll('#opt-punkri .chip, #opt-jaljed .chip').forEach(c => c.classList.remove('selected'));
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      document.getElementById('kuupaev').value = `${yyyy}-${mm}-${dd}`;
       goTo('form');
     };
     g.appendChild(b);
@@ -306,16 +314,23 @@ function pick(el, group) {
 
 async function sendData() {
   const poldudArv = document.getElementById('poldude-arv').value.trim();
+  const kuupaevVal = document.getElementById('kuupaev').value;
+  if (!kuupaevVal) { alert('Vali kuupäev!'); return; }
   if (!selections.valjak) { alert('Vali väljak!'); return; }
   if (!poldudArv) { alert('Sisesta põldude arv!'); return; }
   if (!selections.punkri) { alert('Vali punkri täituvus!'); return; }
   if (!selections.jaljed) { alert('Vali jälgede arv!'); return; }
+
+  // Formaadi kuupäev dd.MM.yyyy
+  const [yyyy, mm, dd] = kuupaevVal.split('-');
+  const kuupaevFormatted = `${dd}.${mm}.${yyyy}`;
 
   goTo('sending');
 
   const payload = {
     raba: currentSite,
     kasutaja: currentUser,
+    kuupaev: kuupaevFormatted,
     valjak: selections.valjak,
     poldude_arv: poldudArv,
     punkri_taituvus: selections.punkri,
@@ -343,10 +358,11 @@ async function sendData() {
 function showSuccess(p) {
   const now = new Date();
   const fmt = d => String(d).padStart(2, '0');
-  const aeg = `${fmt(now.getDate())}.${fmt(now.getMonth()+1)}.${now.getFullYear()} ${fmt(now.getHours())}:${fmt(now.getMinutes())}`;
+  const aeg = `${fmt(now.getHours())}:${fmt(now.getMinutes())}`;
 
   const rows = [
-    ['Aeg', aeg],
+    ['Kuupäev', p.kuupaev],
+    ['Kellaaeg', aeg],
     ['Kasutaja', p.kasutaja],
     ['Raba', p.raba],
     ['Väljak', p.valjak],
