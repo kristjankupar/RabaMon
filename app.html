@@ -68,7 +68,16 @@
   .summary-row .lbl { color: #888; }
   .summary-row .val { font-weight: 600; color: #1a1a1a; }
 
-  /* ---- Spinner ---- */
+  /* ---- Koond screen ---- */
+  .koond-card { background: #fff; border: 1px solid #e0e0d8; border-radius: 14px; padding: 1rem 1.25rem; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .koond-raba { font-size: 14px; font-weight: 700; color: #2C5F2E; margin-bottom: 8px; }
+  .koond-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; border-bottom: 1px solid #f0f0ec; }
+  .koond-row:last-child { border-bottom: none; }
+  .koond-row .lbl { color: #888; }
+  .koond-row .val { font-weight: 600; }
+  .koond-total { background: #EAF3DE; border: 1px solid #2C5F2E; border-radius: 14px; padding: 1rem 1.25rem; text-align: center; margin-bottom: 20px; }
+  .koond-btn { width: 100%; padding: 14px; background: #fff; border: 1px solid #e0e0d8; border-radius: 14px; font-size: 15px; font-weight: 600; color: #2C5F2E; cursor: pointer; margin-top: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .koond-btn:active { background: #f0f0ec; }
   .spinner-wrap { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 1rem 0; }
   .spinner { width: 20px; height: 20px; border: 2px solid #e0e0d8; border-top-color: #2C5F2E; border-radius: 50%; animation: spin 0.7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -121,6 +130,7 @@
     </div>
   </div>
   <div class="site-grid" id="site-grid"></div>
+  <button class="koond-btn" onclick="openKoond()">📊 Koond</button>
 </div>
 
 <!-- =============== FORM SCREEN =============== -->
@@ -169,7 +179,16 @@
   <button class="send-btn" id="send-btn" onclick="sendData()">Saada</button>
 </div>
 
-<!-- =============== SENDING SCREEN =============== -->
+<!-- =============== KOOND SCREEN =============== -->
+<div id="screen-koond" class="screen">
+  <div class="top-bar">
+    <div class="back-btn" onclick="goTo('site')">&#8592;</div>
+    <h2>Koond</h2>
+  </div>
+  <div id="koond-content">
+    <div class="spinner-wrap"><div class="spinner"></div><span style="font-size:15px;color:#666;">Laen andmeid...</span></div>
+  </div>
+</div>
 <div id="screen-sending" class="screen">
   <div style="text-align:center; padding-top: 5rem;">
     <div class="spinner-wrap"><div class="spinner"></div><span style="font-size:15px;color:#666;">Salvestamine...</span></div>
@@ -193,7 +212,7 @@
 // ================================================================
 // SEADISTA: asenda see oma Google Apps Script deployment URL-iga
 // ================================================================
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwTa8foG76TT2t0VpocLddyRGOdoIkoYXeUqzrswkaLyDEyv4r2NtYVqxErbW1NK3GN/exec';
+const SCRIPT_URL = 'ASENDA_SIIA_OMA_APPS_SCRIPT_URL';
 
 // ================================================================
 // Rabad ja nende väljakud
@@ -214,7 +233,16 @@ let currentUser = '';
 let currentSite = '';
 let selections = {};
 
-// ---- PIN ----
+// Kasutajapõhised rabade piirangud — null = kõik rabad
+const USER_SITES = {
+  'Meeme':   ['Prääma', 'Prääma (mehaaniline)', 'Viisu'],
+  'Tanel':   ['Salla'],
+  'Veljo':   ['Peetla', 'Simuna'],
+};
+
+function getUserSites() {
+  return USER_SITES[currentUser] || SITES;
+}
 function updateDots(shake = false) {
   for (let i = 1; i <= 4; i++) {
     const d = document.getElementById('d' + i);
@@ -279,7 +307,7 @@ function logout() {
 function buildSiteGrid() {
   const g = document.getElementById('site-grid');
   g.innerHTML = '';
-  SITES.forEach(s => {
+  getUserSites().forEach(s => {
     const b = document.createElement('div');
     b.className = 'site-btn';
     b.textContent = s;
@@ -404,7 +432,42 @@ function showSuccess(p) {
   goTo('success');
 }
 
-function newEntry() {
+async function openKoond() {
+  goTo('koond');
+  document.getElementById('koond-content').innerHTML =
+    '<div class="spinner-wrap"><div class="spinner"></div><span style="font-size:15px;color:#666;">Laen andmeid...</span></div>';
+  try {
+    const res = await fetch(`${SCRIPT_URL}?action=getKoond`);
+    const data = await res.json();
+    if (data.ok) renderKoond(data.koond);
+    else document.getElementById('koond-content').innerHTML = '<p style="color:#c0392b;text-align:center;">Viga andmete laadimisel</p>';
+  } catch {
+    document.getElementById('koond-content').innerHTML = '<p style="color:#c0392b;text-align:center;">Ühenduse viga</p>';
+  }
+}
+
+function renderKoond(koond) {
+  let grandTotal = 0;
+  const userSites = getUserSites();
+  let html = '';
+  userSites.forEach(raba => {
+    const andmed = koond[raba];
+    if (!andmed || andmed.length === 0) {
+      html += `<div class="koond-card"><div class="koond-raba">${raba}</div><div style="font-size:13px;color:#aaa;">Andmed puuduvad</div></div>`;
+      return;
+    }
+    let rabaTotal = 0;
+    let rows = '';
+    andmed.forEach(({valjak, kogus}) => {
+      rabaTotal += kogus;
+      rows += `<div class="koond-row"><span class="lbl">${valjak}</span><span class="val">${kogus.toLocaleString()} m³</span></div>`;
+    });
+    grandTotal += rabaTotal;
+    html += `<div class="koond-card"><div class="koond-raba">${raba}</div>${rows}<div class="koond-row" style="font-weight:700;margin-top:4px;"><span>Kokku</span><span>${rabaTotal.toLocaleString()} m³</span></div></div>`;
+  });
+  html = `<div class="koond-total"><div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.6px;color:#3B6D11;margin-bottom:4px;">Kõik rabad kokku</div><div style="font-size:28px;font-weight:700;color:#2C5F2E;">${grandTotal.toLocaleString()} m³</div></div>` + html;
+  document.getElementById('koond-content').innerHTML = html;
+}
   goTo('site');
 }
 
