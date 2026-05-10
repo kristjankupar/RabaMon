@@ -323,9 +323,10 @@ function openForm(s) {
   buildPunkri(s);
 
   // Vaikimisi jälgede arv
+  const defaultJaljed = s === 'Prääma (mehaaniline)' ? '4' : '5';
   document.querySelectorAll('#opt-jaljed .chip').forEach(c => {
     c.classList.remove('selected');
-    if (c.textContent.trim() === '5') { c.classList.add('selected'); selections.jaljed = '5'; }
+    if (c.textContent.trim() === defaultJaljed) { c.classList.add('selected'); selections.jaljed = defaultJaljed; }
   });
 
   const today = new Date();
