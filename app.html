@@ -156,9 +156,6 @@
 
   <div class="section-label" style="margin-top:1.5rem;">Punkri täituvus</div>
   <div class="chip-row" id="opt-punkri">
-    <div class="chip" onclick="pick(this,'punkri');updateKogus()">4 m³</div>
-    <div class="chip" onclick="pick(this,'punkri');updateKogus()">6 m³</div>
-    <div class="chip" onclick="pick(this,'punkri');updateKogus()">8 m³</div>
   </div>
 
   <div class="section-label" style="margin-top:1.5rem;">Jälgede arv</div>
@@ -323,12 +320,9 @@ function openForm(s) {
   document.getElementById('kogus-box').style.display = 'none';
   document.getElementById('form-title').textContent = s;
   buildValjak(s);
+  buildPunkri(s);
 
-  // Vaikimisi valikud
-  document.querySelectorAll('#opt-punkri .chip').forEach(c => {
-    c.classList.remove('selected');
-    if (c.textContent.trim() === '4 m³') { c.classList.add('selected'); selections.punkri = '4 m³'; }
-  });
+  // Vaikimisi jälgede arv
   document.querySelectorAll('#opt-jaljed .chip').forEach(c => {
     c.classList.remove('selected');
     if (c.textContent.trim() === '5') { c.classList.add('selected'); selections.jaljed = '5'; }
@@ -340,6 +334,22 @@ function openForm(s) {
   const dd = String(today.getDate()).padStart(2, '0');
   document.getElementById('kuupaev').value = `${yyyy}-${mm}-${dd}`;
   goTo('form');
+}
+
+function buildPunkri(site) {
+  const isMehhaaniline = site === 'Prääma (mehaaniline)';
+  const options = isMehhaaniline ? ['12 m³', '16 m³', '20 m³'] : ['4 m³', '6 m³', '8 m³'];
+  const defaultVal = isMehhaaniline ? '20 m³' : '4 m³';
+  const container = document.getElementById('opt-punkri');
+  container.innerHTML = '';
+  options.forEach(opt => {
+    const el = document.createElement('div');
+    el.className = 'chip';
+    el.textContent = opt;
+    el.onclick = () => { pick(el, 'punkri'); updateKogus(); };
+    if (opt === defaultVal) { el.classList.add('selected'); selections.punkri = opt; }
+    container.appendChild(el);
+  });
 }
 
 // ---- FORM ----
