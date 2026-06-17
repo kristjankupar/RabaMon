@@ -358,8 +358,8 @@ function openForm(s) {
 
 function buildPunkri(site) {
   const isMehhaaniline = site === 'Prääma (mehaaniline)';
-  const options = isMehhaaniline ? ['12 m³', '16 m³', '20 m³'] : ['3 m³', '4 m³', '6 m³'];
-  const defaultVal = isMehhaaniline ? '20 m³' : '3 m³';
+  const options = isMehhaaniline ? ['16 m³', '20 m³'] : ['6 m³', '8 m³'];
+  const defaultVal = isMehhaaniline ? '20 m³' : '6 m³';
   const container = document.getElementById('opt-punkri');
   container.innerHTML = '';
   options.forEach(opt => {
