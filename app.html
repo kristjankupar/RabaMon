@@ -215,8 +215,8 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwTa8foG76TT2t0VpocL
 // Rabad ja nende väljakud
 // ================================================================
 const SITES_DATA = {
-  'Prääma':              ['I','II','III','III.I','III.II','IV'],
-  'Prääma (mehaaniline)':['I','II','III','III.I','III.II','IV'],
+  'Prääma':              ['I.P','I.L','II','III','III.I','III.II','IV'],
+  'Prääma (mehaaniline)':['I.P','I.L','II','III','III.I','III.II','IV'],
   'Retla':               ['I','II','III','IV','V','VI','VII','VIII','IX','X'],
   'Viisu':               ['I','II','III','IV','V','VI','VII'],
   'Salla':               ['I','II','III','IV','V','VI','VII'],
@@ -224,6 +224,25 @@ const SITES_DATA = {
   'Simuna':              ['I','II'],
 };
 const SITES = Object.keys(SITES_DATA);
+
+// Lühikesed väljakud — jälg läbib kahte lühikest põldu (kogus jagatakse 2-ga)
+// 'all' = kõik väljakud lühikesed; massiiv = ainult loetletud väljakud lühikesed
+const LUHIKE_VALJAKUD = {
+  'Prääma':               ['I.L', 'II', 'III.I', 'III.II'],
+  'Prääma (mehaaniline)': ['I.L', 'II', 'III.I', 'III.II'],
+  'Retla':                'all',
+  'Viisu':                'all',
+  'Salla':                'all',
+  'Peetla':               'all',
+  'Simuna':                'all',
+};
+
+function isLuhike(raba, valjak) {
+  const cfg = LUHIKE_VALJAKUD[raba];
+  if (cfg === 'all') return true;
+  if (Array.isArray(cfg)) return cfg.includes(valjak);
+  return false;
+}
 
 let pin = '';
 let currentUser = '';
@@ -361,7 +380,7 @@ function buildValjak(site) {
     const el = document.createElement('div');
     el.className = 'chip';
     el.textContent = v;
-    el.onclick = () => pick(el, 'valjak');
+    el.onclick = () => { pick(el, 'valjak'); updateKogus(); };
     container.appendChild(el);
   });
   selections.valjak = '';
@@ -378,10 +397,14 @@ function updateKogus() {
   const punkri = selections.punkri ? parseInt(selections.punkri) : null;
   const jaljed = selections.jaljed ? parseInt(selections.jaljed) : null;
 
-  if (poldud && punkri && jaljed) {
-    const kogus = poldud * jaljed * punkri;
+  if (poldud && punkri && jaljed && selections.valjak) {
+    const luhike = isLuhike(currentSite, selections.valjak);
+    let kogus = poldud * jaljed * punkri;
+    if (luhike) kogus = kogus / 2;
     document.getElementById('kogus-arv').textContent = kogus;
-    document.getElementById('kogus-valem').textContent = `${poldud} põldu × ${jaljed} jälge × ${punkri} m³`;
+    document.getElementById('kogus-valem').textContent = luhike
+      ? `${poldud} põldu × ${jaljed} jälge × ${punkri} m³ ÷ 2 (lühike)`
+      : `${poldud} põldu × ${jaljed} jälge × ${punkri} m³`;
     document.getElementById('kogus-box').style.display = 'block';
   } else {
     document.getElementById('kogus-box').style.display = 'none';
@@ -403,6 +426,10 @@ async function sendData() {
 
   goTo('sending');
 
+  // Arvuta kogus — lühikese väljaku puhul jagatakse 2-ga
+  let kogusArvutus = parseFloat(poldudArv) * parseInt(selections.jaljed) * parseInt(selections.punkri);
+  if (isLuhike(currentSite, selections.valjak)) kogusArvutus = kogusArvutus / 2;
+
   const payload = {
     raba: currentSite,
     kasutaja: currentUser,
@@ -411,7 +438,7 @@ async function sendData() {
     poldude_arv: parseFloat(poldudArv),
     punkri_taituvus: parseInt(selections.punkri),
     jalgede_arv: parseInt(selections.jaljed),
-    kogus: parseFloat(poldudArv) * parseInt(selections.jaljed) * parseInt(selections.punkri),
+    kogus: kogusArvutus,
   };
 
   try {
